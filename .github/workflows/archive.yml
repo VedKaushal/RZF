@@ -1,0 +1,36 @@
+name: Build Zero's archive
+on:
+  push:
+    branches: [main]
+    paths: ['site/**', 'scripts/**', '.github/workflows/archive.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: archive-main
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preserve original artwork locally
+        run: python3 scripts/import_assets.py
+      - name: Build all archive pages
+        run: python3 scripts/build.py
+      - name: Validate archive
+        run: python3 scripts/validate.py
+      - name: Save publishable website
+        run: |
+          git config user.name "Zero Archive"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs
+          if ! git diff --cached --quiet; then
+            git commit -m "Build archive and preserve original artwork"
+            git push
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zero-archive
+          path: docs
+          include-hidden-files: true
